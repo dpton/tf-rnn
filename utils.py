@@ -2,14 +2,15 @@
 # !/usr/bin/env python
 from __future__ import absolute_import, division, print_function, unicode_literals
 import numpy as np
-import numpy as np
 import logging
 import nltk
 from text2num import text2num
 from nltk.corpus import stopwords
 from gensim.models.wrappers import FastText
 from gensim.models import Word2Vec
-
+import random
+import threading
+import tensorflow as tf
 
 
 
@@ -327,6 +328,82 @@ class wordEmbedding(object):
     def get_embedding_matrix(self):
         return self._model.syn0
 
+def create_queue(sess = None, coord = None, encode_data = None,
+                 decode_data = None, capacity = 1024, batch_size = 32, scope = None):
+
+    encode = tf.placeholder(tf.int32, shape=[None], name="encode")
+    decode = tf.placeholder(tf.int32, shape=[decode_max_length + 2], name="decode")
+    weight = tf.placeholder(tf.float32, shape=[decode_max_length + 1], name="weight")
+    queue = tf.PaddingFIFOQueue(capacity = capacity,
+                        dtypes = [tf.int32, tf.int32, tf.float32],
+                        shapes = [[None], [decode_max_length + 2], [decode_max_length + 1]],
+                        name = 'FIFOQueue')
+    enqueue_op = queue.enqueue([encode, decode, weight])
+
+
+    def _iterator():
+        assert len(encode_data) == len(decode_data)
+        data = list(zip(encode_data, decode_data))
+        random.shuffle(data)
+        encode, decode = [list(t) for t in zip(*data)]
+
+        for i in range(len(data)):
+#             if len(encode[i]) > encode_max_length - 1 or len(decode[i]) > decode_max_length - 1:
+#                 raise 'the sentence is longer than max_length'
+            #_encode = encode[i][:encode_max_length]
+            #_encode = _encode + [PAD_ID] * (encode_max_length - len(_encode))
+            _encode = encode[i]
+            _decode = decode[i][:decode_max_length]
+            
+        
+            
+            _decode_padding_size = decode_max_length - len(_decode)
+            _weight = [1.0] * (len(_decode) + 1) + [0.0] * _decode_padding_size
+            _decode = [GO_ID] + _decode + [EOS_ID] + [PAD_ID] * _decode_padding_size
+            
+            yield _encode, _decode, _weight#, _encode_length, _decode_length
+    def basic_enqueue(sess, encode_input, decode_input = None):
+#         if len(encode_input) > encode_max_length:
+#             encode_input = encode_input[:encode_max_length]
+#         _encode = encode_input + [PAD_ID] * (encode_max_length - len(encode_input))
+        _encode = encode_input
+        if decode_input is None:
+            _decode = [GO_ID] + [PAD_ID] * (decode_max_length + 1)
+            _weight = [1.0] * (decode_max_length + 1)
+        else:
+            _decode_padding_size = decode_max_length - len(decode_input)
+            _decode = [GO_ID] + decode_input + [EOS_ID] + [PAD_ID] * _decode_padding_size
+            _weight = [1.0] * (len(decode_input) + 1) + [0.0] * _decode_padding_size
+        feed_dict = {
+                encode: _encode,
+                decode: _decode,
+                weight: _weight
+            }
+        # Push all the training examples to the queue
+        sess.run(enqueue_op, feed_dict=feed_dict)
+    def _enqueue(sess, coord):
+        try:
+            while not coord.should_stop():
+                for _encode, _decode, _weight in _iterator():
+                    feed_dict = {
+                        encode: _encode,
+                        decode: _decode,
+                        weight: _weight,
+                    }
+                    # Push all the training examples to the queue
+                    sess.run(enqueue_op, feed_dict=feed_dict)
+        except tf.errors.CancelledError:
+            coord.request_stop()
+    #Start thread enqueue data
+    # if encode_data is None or  decode_data is None:
+    #     return queue, None, basic_enqueue
+    enqueue_threads = []
+    ## enqueue asynchronously
+    for i in range(num_threads):
+        enqueue_thread = threading.Thread(target=_enqueue, args=(sess, coord))
+        enqueue_thread.setDaemon(True)
+        enqueue_threads.append(enqueue_thread)
+    return queue, enqueue_threads, basic_enqueue
 
 if __name__ == '__main__':
     print(tokenize("http://google.com.vn I love the cat @Peter with 69USD"))
