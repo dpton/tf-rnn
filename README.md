@@ -1,12 +1,12 @@
-# Project Title (in-progress)
+## Tensorflow rnn (in-progress)
 
 Some RNNs architectures (Recurrent neural networks) implemented in tensorflow
 
-### Prerequisites
+# Prerequisites
 
 tensorflow >= 1.0
  
 
-## License
+# License
 
 Feel free to use and pull anything here .
