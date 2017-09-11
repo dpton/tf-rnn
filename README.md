@@ -1,4 +1,4 @@
-# Project Title
+# Project Title (in-progress)
 
 Some RNNs architectures (Recurrent neural networks) implemented in tensorflow
 
