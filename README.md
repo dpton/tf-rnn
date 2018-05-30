@@ -1,4 +1,4 @@
-# Tensorflow rnn (in-progress)
+# Tensorflow rnn
 
 Some RNNs architectures (Recurrent neural networks) implemented in tensorflow
 
