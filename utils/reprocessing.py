@@ -4,7 +4,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import numpy as np
 import logging
 import nltk
-from text2num import text2num
 from nltk.corpus import stopwords
 from gensim.models.wrappers import FastText
 from gensim.models import Word2Vec
@@ -37,7 +36,7 @@ GO_ID = 1
 EOS_ID = 2
 UNK_ID = 3
 SPECIAL_WORDS = [PAD, GO, EOS, UNK]
-
+decode_max_length = 25
 
 def fix_bad_unicode(text, normalization='NFC'):
     """

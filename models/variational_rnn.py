@@ -1,4 +1,7 @@
 import tensorflow as tf
+import os
+from utils.reprocessing import generator_enqueue
+from utils.reprocessing import PAD_ID,GO_ID, EOS_ID, UNK_ID
 
 
 class Variational_autoencoder_Seq2Seq(object):
@@ -30,19 +33,19 @@ class Variational_autoencoder_Seq2Seq(object):
         cell = tf.contrib.rnn.BasicLSTMCell(num_units)
         return cell
 
-    # def _clip_gradients(self, grads_and_vars, embedding_norm = 0.1):
-    #     """In addition to standard gradient clipping, also clips embedding
-    #     gradients to a specified value."""
-    #     clipped_gradients = []
-    #     variables = []
-    #     for gradient, variable in grads_and_vars:
-    #         if "embedding" in variable.name:
-    #             tmp = tf.clip_by_norm(
-    #                 gradient.values, embedding_norm)
-    #             gradient = tf.IndexedSlices(tmp, gradient.indices, gradient.dense_shape)
-    #         clipped_gradients.append(gradient)
-    #         variables.append(variable)
-    #     return list(zip(clipped_gradients, variables))
+    def _clip_gradients(self, grads_and_vars, embedding_norm = 0.1):
+        """In addition to standard gradient clipping, also clips embedding
+        gradients to a specified value."""
+        clipped_gradients = []
+        variables = []
+        for gradient, variable in grads_and_vars:
+            if "embedding" in variable.name:
+                tmp = tf.clip_by_norm(
+                    gradient.values, embedding_norm)
+                gradient = tf.IndexedSlices(tmp, gradient.indices, gradient.dense_shape)
+            clipped_gradients.append(gradient)
+            variables.append(variable)
+        return list(zip(clipped_gradients, variables))
 
     def _optimizer(self, loss):
         """Create the optimizer node of the graph."""
@@ -248,10 +251,10 @@ class Variational_autoencoder_Seq2Seq(object):
     def load(self, sess, model_dir=""):
         ckpt = tf.train.get_checkpoint_state(model_dir)
         if ckpt and ckpt.model_checkpoint_path:
-            print 'success'
+            print('success')
             self.saver.restore(sess, ckpt.model_checkpoint_path)
         else:
-            print 'fail'
+            print('fail')
 
     def validate(self, sess, inputs, batch_size=1, feed_dict={}):
         losses = 0

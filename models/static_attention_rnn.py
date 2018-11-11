@@ -1,5 +1,8 @@
 import tensorflow as tf
-from utils import create_queue
+from utils.reprocessing import create_queue
+from tensorflow.contrib.framework import nest
+
+
 
 def linear(args, output_size, bias, bias_start=0.0):
     """Linear map: sum_i(args[i] * W[i]), where W[i] is a variable.
@@ -112,7 +115,7 @@ def _extract_argmax_and_embed(embedding, output_projection=None,
         # embedding_lookup.
         emb_prev = tf.nn.embedding_lookup(embedding, prev_symbol)
         if not update_embedding:
-            emb_prev = tf.nn.tf.stop_gradient(emb_prev)
+            emb_prev = tf.nn.stop_gradient(emb_prev)
         return emb_prev
     return loop_function
 def attention_decoder(decoder_inputs,
